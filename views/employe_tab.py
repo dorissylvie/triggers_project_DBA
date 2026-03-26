@@ -121,6 +121,14 @@ class EmployeTab(tk.Frame):
 
     # ── Rafraîchissement du tableau ──────────────────────────────
 
+    @staticmethod
+    def _item_id_from_matricule(matricule):
+        return f"mat::{matricule}"
+
+    @staticmethod
+    def _matricule_from_item_id(item_id):
+        return item_id.split("mat::", 1)[1] if item_id.startswith("mat::") else item_id
+
     def refresh_table(self, data=None):
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -128,9 +136,11 @@ class EmployeTab(tk.Frame):
             rows = data if data is not None else EmployeModel.get_all()
             for i, row in enumerate(rows):
                 tag = "even" if i % 2 == 0 else "odd"
+                matricule = str(row["matricule"])
                 self.tree.insert(
                     "", "end",
-                    values=(row["matricule"], row["nom"], f"{row['salaire']:,.0f} Ar".replace(",", " ")),
+                    iid=self._item_id_from_matricule(matricule),
+                    values=(matricule, row["nom"], f"{row['salaire']:,.0f} Ar".replace(",", " ")),
                     tags=(tag,),
                 )
             self.tree.tag_configure("odd", background=COLORS["table_row_alt"])
@@ -177,6 +187,16 @@ class EmployeTab(tk.Frame):
         fields_frame = tk.Frame(form, bg=COLORS["bg"])
         fields_frame.pack(padx=40, fill="x")
 
+        def _validate_salary_input(proposed_value):
+            if proposed_value == "":
+                return True
+            normalized = proposed_value.replace(",", ".")
+            if normalized.count(".") > 1:
+                return False
+            return all(ch.isdigit() or ch == "." for ch in normalized)
+
+        salary_validate_cmd = (form.register(_validate_salary_input), "%P")
+
         entries = {}
         for label_text, key in [("Matricule", "matricule"), ("Nom", "nom"), ("Salaire", "salaire")]:
             tk.Label(fields_frame, text=label_text, font=FONTS["body_bold"],
@@ -186,6 +206,8 @@ class EmployeTab(tk.Frame):
                 fg=COLORS["text_dark"], relief="solid",
                 highlightbackground=COLORS["input_border"], highlightthickness=1,
             )
+            if key == "salaire":
+                entry.config(validate="key", validatecommand=salary_validate_cmd)
             entry.pack(fill="x", ipady=8)
             entries[key] = entry
 
@@ -204,7 +226,7 @@ class EmployeTab(tk.Frame):
         def valider():
             matricule = entries["matricule"].get().strip()
             nom = entries["nom"].get().strip()
-            salaire_str = entries["salaire"].get().strip()
+            salaire_str = entries["salaire"].get().strip().replace(",", ".")
 
             if not matricule or not nom or not salaire_str:
                 messagebox.showwarning("Champs manquants", "Tous les champs sont obligatoires.", parent=form)
@@ -244,22 +266,32 @@ class EmployeTab(tk.Frame):
         if not selected:
             messagebox.showwarning("Attention", "Sélectionnez un employé à modifier.")
             return
-        values = self.tree.item(selected[0])["values"]
-        self._open_form("modification", values)
+        item_id = selected[0]
+        matricule = self._matricule_from_item_id(item_id)
+        try:
+            row = EmployeModel.get_by_matricule(matricule)
+            if not row:
+                messagebox.showerror("Erreur", "Employé introuvable.")
+                return
+            self._open_form("modification", (str(row["matricule"]), row["nom"], row["salaire"]))
+        except Exception as e:
+            messagebox.showerror("Erreur", str(e))
 
     def _on_delete(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Attention", "Sélectionnez un employé à supprimer.")
             return
-        values = self.tree.item(selected[0])["values"]
+        item_id = selected[0]
+        matricule = self._matricule_from_item_id(item_id)
+        values = self.tree.item(item_id)["values"]
         confirm = messagebox.askyesno(
             "Confirmation",
-            f"Supprimer l'employé {values[1]} (matricule: {values[0]}) ?",
+            f"Supprimer l'employé {values[1]} (matricule: {matricule}) ?",
         )
         if confirm:
             try:
-                EmployeModel.delete(str(values[0]))
+                EmployeModel.delete(matricule)
                 self.refresh_table()
                 messagebox.showinfo("Succès", "Employé supprimé.")
                 if self.on_data_change:

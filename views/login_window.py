@@ -11,14 +11,14 @@ class LoginWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Connexion")
-        self.geometry("460x340")
+        self.geometry("460x400")
         self.resizable(False, False)
         self.configure(bg=COLORS["bg"])
         self.authenticated_user = None
 
         self.update_idletasks()
         x = (self.winfo_screenwidth() - 460) // 2
-        y = (self.winfo_screenheight() - 340) // 2
+        y = (self.winfo_screenheight() - 400) // 2
         self.geometry(f"+{x}+{y}")
 
         self._build_ui()
@@ -33,26 +33,19 @@ class LoginWindow(tk.Tk):
             font=FONTS["title"],
             bg=COLORS["card_bg"],
             fg=COLORS["text_dark"],
-        ).pack(pady=(20, 6))
+        ).pack(pady=(16, 6))
 
-        tk.Label(
-            card,
-            text="Connectez-vous selon votre rôle",
-            font=FONTS["body"],
-            bg=COLORS["card_bg"],
-            fg=COLORS["text_light"],
-        ).pack(pady=(0, 16))
 
         form = tk.Frame(card, bg=COLORS["card_bg"])
         form.pack(fill="x", padx=40)
 
         tk.Label(form, text="Username", font=FONTS["body_bold"], bg=COLORS["card_bg"], fg=COLORS["text_dark"], anchor="w").pack(fill="x", pady=(6, 2))
         self.username_entry = tk.Entry(form, font=FONTS["input"], relief="solid", highlightbackground=COLORS["input_border"], highlightthickness=1)
-        self.username_entry.pack(fill="x", ipady=8)
+        self.username_entry.pack(fill="x", ipady=6)
 
         tk.Label(form, text="Mot de passe", font=FONTS["body_bold"], bg=COLORS["card_bg"], fg=COLORS["text_dark"], anchor="w").pack(fill="x", pady=(10, 2))
         self.password_entry = tk.Entry(form, show="*", font=FONTS["input"], relief="solid", highlightbackground=COLORS["input_border"], highlightthickness=1)
-        self.password_entry.pack(fill="x", ipady=8)
+        self.password_entry.pack(fill="x", ipady=6)
 
         btn = tk.Button(
             card,
@@ -68,14 +61,15 @@ class LoginWindow(tk.Tk):
             pady=8,
             command=self._login,
         )
-        btn.pack(pady=(22, 12))
+        btn.pack(pady=(16, 8))
 
-        hint = (
-            "Comptes par défaut:\n"
-            "- user1 / user123 (UTILISATEUR)\n"
-            "- super1 / super123 (SUPERVISEUR)"
+        hint_box = tk.Frame(
+            card,
+            bg=COLORS["table_header"],
+            highlightbackground=COLORS["border"],
+            highlightthickness=1,
         )
-        tk.Label(card, text=hint, font=FONTS["small"], bg=COLORS["card_bg"], fg=COLORS["text_light"], justify="left").pack(pady=(0, 16))
+        # hint_box.pack(fill="x", padx=40, pady=(0, 10))
 
         self.bind("<Return>", lambda _: self._login())
         self.username_entry.focus_set()

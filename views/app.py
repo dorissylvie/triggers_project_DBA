@@ -65,10 +65,7 @@ class App(tk.Tk):
             logo_frame, text="GestEmployés", font=("Segoe UI", 15, "bold"),
             bg=COLORS["sidebar"], fg=COLORS["text_white"],
         ).pack()
-        tk.Label(
-            logo_frame, text="Système d'audit", font=FONTS["small"],
-            bg=COLORS["sidebar"], fg="#95A5A6",
-        ).pack()
+        
         tk.Label(
             logo_frame,
             text=f"{self.current_user['nom']}\n({self.current_user['role']})",
