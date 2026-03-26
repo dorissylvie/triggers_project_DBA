@@ -1,9 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import os
+import subprocess
+import sys
 
 from config.database import test_connection
 from utils.styles import COLORS, FONTS, SIZES, configure_treeview_style
-from utils.session import set_current_user
+from utils.session import set_current_user, clear_session
 from views.employe_tab import EmployeTab
 from views.audit_tab import AuditTab
 
@@ -100,6 +103,26 @@ class App(tk.Tk):
             btn.bind("<Leave>", lambda e, b=btn: b.config(bg=COLORS["sidebar"]) if b != self._active_btn() else None)
             self.nav_buttons[key] = btn
 
+        logout_frame = tk.Frame(sidebar, bg=COLORS["sidebar"])
+        logout_frame.pack(side="bottom", fill="x", padx=8, pady=(8, 16))
+
+        logout_btn = tk.Button(
+            logout_frame,
+            text="⎋  Déconnecter",
+            font=FONTS["sidebar"],
+            bg=COLORS["danger"],
+            fg=COLORS["text_white"],
+            activebackground=COLORS["danger_hover"],
+            activeforeground=COLORS["text_white"],
+            relief="flat",
+            anchor="w",
+            padx=20,
+            pady=10,
+            cursor="hand2",
+            command=self._logout,
+        )
+        logout_btn.pack(fill="x")
+
         # ── Zone de contenu ──────────────────────────────────────
         self.content = tk.Frame(self, bg=COLORS["bg"])
         self.content.pack(side="left", fill="both", expand=True)
@@ -149,3 +172,19 @@ class App(tk.Tk):
         """Appelé quand les données employés changent (ajout/modif/suppression)."""
         if "audit" in self.tabs:
             self.tabs["audit"].refresh()
+
+    def _logout(self):
+        """Déconnecte l'utilisateur et revient à l'écran de connexion."""
+        confirm = messagebox.askyesno(
+            "Déconnexion",
+            "Voulez-vous vous déconnecter ?",
+            parent=self,
+        )
+        if not confirm:
+            return
+
+        clear_session()
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        main_path = os.path.join(root_dir, "main.py")
+        subprocess.Popen([sys.executable, main_path], cwd=root_dir)
+        self.destroy()
