@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 
 from config.database import test_connection
 from utils.styles import COLORS, FONTS, SIZES, configure_treeview_style
+from utils.session import set_current_user
 from views.employe_tab import EmployeTab
 from views.audit_tab import AuditTab
 
@@ -10,8 +11,13 @@ from views.audit_tab import AuditTab
 class App(tk.Tk):
     """Fenêtre principale avec sidebar de navigation."""
 
-    def __init__(self):
+    def __init__(self, current_user):
         super().__init__()
+        self.current_user = current_user
+        
+        # Initialiser la session globale avec l'utilisateur connecté
+        set_current_user(current_user)
+        
         self.title("Gestion des Employés — Supervision par Triggers")
         self.geometry("1200x700")
         self.minsize(900, 550)
@@ -63,15 +69,25 @@ class App(tk.Tk):
             logo_frame, text="Système d'audit", font=FONTS["small"],
             bg=COLORS["sidebar"], fg="#95A5A6",
         ).pack()
+        tk.Label(
+            logo_frame,
+            text=f"{self.current_user['nom']}\n({self.current_user['role']})",
+            font=FONTS["small"],
+            bg=COLORS["sidebar"],
+            fg=COLORS["text_white"],
+            justify="center",
+        ).pack(pady=(8, 0))
 
         # Boutons de navigation
         self.nav_buttons = {}
         self.current_tab = None
 
-        nav_items = [
-            ("employes", "👥  Employés"),
-            ("audit", "📋  Supervision"),
-        ]
+        user_role = self.current_user["role"]
+        if user_role == "UTILISATEUR":
+            nav_items = [("employes", "👥  Employés")]
+        else:
+            nav_items = [("audit", "📋  Supervision")]
+
         for key, text in nav_items:
             btn = tk.Button(
                 sidebar, text=text, font=FONTS["sidebar"],
@@ -93,11 +109,15 @@ class App(tk.Tk):
 
         # Créer les onglets
         self.tabs = {}
-        self.tabs["audit"] = AuditTab(self.content)
-        self.tabs["employes"] = EmployeTab(self.content, on_data_change=self._on_employee_data_change)
+        if user_role == "UTILISATEUR":
+            self.tabs["employes"] = EmployeTab(self.content, on_data_change=self._on_employee_data_change)
+            default_tab = "employes"
+        else:
+            self.tabs["audit"] = AuditTab(self.content)
+            default_tab = "audit"
 
         # Afficher l'onglet par défaut
-        self._switch_tab("employes")
+        self._switch_tab(default_tab)
 
     def _active_btn(self):
         if self.current_tab and self.current_tab in self.nav_buttons:

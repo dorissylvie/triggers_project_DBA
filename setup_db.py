@@ -36,6 +36,30 @@ def run_setup():
         """)
         print("[OK] Table 'employe' créée.")
 
+        # Table utilisateur
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS utilisateur (
+                nom VARCHAR(100) NOT NULL,
+                username VARCHAR(50) PRIMARY KEY,
+                role ENUM('UTILISATEUR', 'SUPERVISEUR') NOT NULL,
+                mot_de_passe VARCHAR(255) NOT NULL
+            )
+        """)
+        print("[OK] Table 'utilisateur' créée.")
+
+        # Comptes par défaut
+        cursor.execute("""
+            INSERT INTO utilisateur (nom, username, role, mot_de_passe)
+            VALUES
+                ('Agent Gestion', 'user1', 'UTILISATEUR', SHA2('user123', 256)),
+                ('Compte Superviseur', 'super1', 'SUPERVISEUR', SHA2('super123', 256))
+            ON DUPLICATE KEY UPDATE
+                nom = VALUES(nom),
+                role = VALUES(role),
+                mot_de_passe = VALUES(mot_de_passe)
+        """)
+        print("[OK] Comptes utilisateur/superviseur insérés.")
+
         # Table audit_employe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS audit_employe (
@@ -57,8 +81,8 @@ def run_setup():
             CREATE TRIGGER trg_after_insert_employe
             AFTER INSERT ON employe
             FOR EACH ROW
-            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-            VALUES ('AJOUT', NEW.matricule, NEW.nom, NULL, NEW.salaire)
+            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+            VALUES ('AJOUT', NEW.matricule, NEW.nom, NULL, NEW.salaire, COALESCE(@app_user, CURRENT_USER()))
         """)
         print("[OK] Trigger INSERT créé.")
 
@@ -67,8 +91,8 @@ def run_setup():
             CREATE TRIGGER trg_after_update_employe
             AFTER UPDATE ON employe
             FOR EACH ROW
-            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-            VALUES ('MODIFICATION', NEW.matricule, NEW.nom, OLD.salaire, NEW.salaire)
+            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+            VALUES ('MODIFICATION', NEW.matricule, NEW.nom, OLD.salaire, NEW.salaire, COALESCE(@app_user, CURRENT_USER()))
         """)
         print("[OK] Trigger UPDATE créé.")
 
@@ -77,15 +101,15 @@ def run_setup():
             CREATE TRIGGER trg_after_delete_employe
             AFTER DELETE ON employe
             FOR EACH ROW
-            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-            VALUES ('SUPPRESSION', OLD.matricule, OLD.nom, OLD.salaire, NULL)
+            INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+            VALUES ('SUPPRESSION', OLD.matricule, OLD.nom, OLD.salaire, NULL, COALESCE(@app_user, CURRENT_USER()))
         """)
         print("[OK] Trigger DELETE créé.")
 
         conn.commit()
         cursor.close()
         conn.close()
-        print("\n✅ Base de données initialisée avec succès !")
+        print("\n[OK] Base de donnees initialisee avec succes !")
         print("   Vous pouvez maintenant lancer : python main.py")
 
     except Error as e:

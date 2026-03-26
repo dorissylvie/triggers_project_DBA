@@ -4,10 +4,17 @@ Point d'entrée de l'application.
 """
 
 from views.app import App
+from views.login_window import LoginWindow
 
 
 def main():
-    app = App()
+    login = LoginWindow()
+    login.mainloop()
+
+    if not login.authenticated_user:
+        return
+
+    app = App(current_user=login.authenticated_user)
     app.mainloop()
 
 

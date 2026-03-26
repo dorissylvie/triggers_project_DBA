@@ -16,6 +16,26 @@ CREATE TABLE IF NOT EXISTS employe (
 );
 
 -- =============================================
+-- Table : utilisateur
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS utilisateur (
+    nom VARCHAR(100) NOT NULL,
+    username VARCHAR(50) PRIMARY KEY,
+    role ENUM('UTILISATEUR', 'SUPERVISEUR') NOT NULL,
+    mot_de_passe VARCHAR(255) NOT NULL
+);
+
+INSERT INTO utilisateur (nom, username, role, mot_de_passe)
+VALUES
+    ('Agent Gestion', 'user1', 'UTILISATEUR', SHA2('user123', 256)),
+    ('Compte Superviseur', 'super1', 'SUPERVISEUR', SHA2('super123', 256))
+ON DUPLICATE KEY UPDATE
+    nom = VALUES(nom),
+    role = VALUES(role),
+    mot_de_passe = VALUES(mot_de_passe);
+
+-- =============================================
 -- Table : audit_employe
 -- =============================================
 
@@ -41,8 +61,8 @@ CREATE TRIGGER trg_after_insert_employe
 AFTER INSERT ON employe
 FOR EACH ROW
 BEGIN
-    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-    VALUES ('AJOUT', NEW.matricule, NEW.nom, NULL, NEW.salaire);
+    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+    VALUES ('AJOUT', NEW.matricule, NEW.nom, NULL, NEW.salaire, COALESCE(@app_user, CURRENT_USER()));
 END //
 DELIMITER ;
 
@@ -57,8 +77,8 @@ CREATE TRIGGER trg_after_update_employe
 AFTER UPDATE ON employe
 FOR EACH ROW
 BEGIN
-    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-    VALUES ('MODIFICATION', NEW.matricule, NEW.nom, OLD.salaire, NEW.salaire);
+    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+    VALUES ('MODIFICATION', NEW.matricule, NEW.nom, OLD.salaire, NEW.salaire, COALESCE(@app_user, CURRENT_USER()));
 END //
 DELIMITER ;
 
@@ -73,7 +93,7 @@ CREATE TRIGGER trg_after_delete_employe
 AFTER DELETE ON employe
 FOR EACH ROW
 BEGIN
-    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv)
-    VALUES ('SUPPRESSION', OLD.matricule, OLD.nom, OLD.salaire, NULL);
+    INSERT INTO audit_employe (type_action, matricule, nom, salaire_ancien, salaire_nouv, utilisateur)
+    VALUES ('SUPPRESSION', OLD.matricule, OLD.nom, OLD.salaire, NULL, COALESCE(@app_user, CURRENT_USER()));
 END //
 DELIMITER ;

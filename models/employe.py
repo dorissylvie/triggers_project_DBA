@@ -1,4 +1,4 @@
-from config.database import get_connection
+from utils.db_utils import execute_query, execute_non_query
 
 
 class EmployeModel:
@@ -6,65 +6,45 @@ class EmployeModel:
 
     @staticmethod
     def get_all():
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT matricule, nom, salaire FROM employe ORDER BY matricule")
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return rows
+        return execute_query(
+            "SELECT matricule, nom, salaire FROM employe ORDER BY matricule",
+            fetch_all=True
+        ) or []
 
     @staticmethod
     def get_by_matricule(matricule):
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT matricule, nom, salaire FROM employe WHERE matricule = %s", (matricule,))
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return row
+        return execute_query(
+            "SELECT matricule, nom, salaire FROM employe WHERE matricule = %s",
+            (matricule,),
+            fetch_one=True
+        )
 
     @staticmethod
     def insert(matricule, nom, salaire):
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
+        execute_non_query(
             "INSERT INTO employe (matricule, nom, salaire) VALUES (%s, %s, %s)",
             (matricule, nom, salaire),
         )
-        conn.commit()
-        cursor.close()
-        conn.close()
 
     @staticmethod
     def update(matricule, nom, salaire):
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
+        execute_non_query(
             "UPDATE employe SET nom = %s, salaire = %s WHERE matricule = %s",
             (nom, salaire, matricule),
         )
-        conn.commit()
-        cursor.close()
-        conn.close()
 
     @staticmethod
     def delete(matricule):
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM employe WHERE matricule = %s", (matricule,))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        execute_non_query(
+            "DELETE FROM employe WHERE matricule = %s",
+            (matricule,),
+        )
 
     @staticmethod
     def search(keyword):
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        query = "SELECT matricule, nom, salaire FROM employe WHERE matricule LIKE %s OR nom LIKE %s"
         like = f"%{keyword}%"
-        cursor.execute(query, (like, like))
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return rows
+        return execute_query(
+            "SELECT matricule, nom, salaire FROM employe WHERE matricule LIKE %s OR nom LIKE %s",
+            (like, like),
+            fetch_all=True
+        ) or []

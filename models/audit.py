@@ -1,4 +1,4 @@
-from config.database import get_connection
+from utils.db_utils import execute_query
 
 
 class AuditModel:
@@ -6,47 +6,32 @@ class AuditModel:
 
     @staticmethod
     def get_all():
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(
+        return execute_query(
             "SELECT id, type_action, date_mise_a_jour, matricule, nom, "
             "salaire_ancien, salaire_nouv, utilisateur "
-            "FROM audit_employe ORDER BY date_mise_a_jour DESC"
-        )
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return rows
+            "FROM audit_employe ORDER BY date_mise_a_jour DESC",
+            fetch_all=True
+        ) or []
 
     @staticmethod
     def get_stats():
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(
+        return execute_query(
             "SELECT "
             "SUM(CASE WHEN type_action = 'AJOUT' THEN 1 ELSE 0 END) AS nb_ajouts, "
             "SUM(CASE WHEN type_action = 'MODIFICATION' THEN 1 ELSE 0 END) AS nb_modifications, "
             "SUM(CASE WHEN type_action = 'SUPPRESSION' THEN 1 ELSE 0 END) AS nb_suppressions, "
             "COUNT(*) AS total "
-            "FROM audit_employe"
+            "FROM audit_employe",
+            fetch_one=True
         )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return row
 
     @staticmethod
     def filter_by_action(action_type):
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(
+        return execute_query(
             "SELECT id, type_action, date_mise_a_jour, matricule, nom, "
             "salaire_ancien, salaire_nouv, utilisateur "
             "FROM audit_employe WHERE type_action = %s "
             "ORDER BY date_mise_a_jour DESC",
             (action_type,),
-        )
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return rows
+            fetch_all=True
+        ) or []
